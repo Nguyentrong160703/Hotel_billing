@@ -1,478 +1,273 @@
+# Import các module cần thiết
 from tkinter import *
 from tkinter import ttk
 import tkinter.messagebox as tmsg
 import os
 import time
 
-
+# Danh sách các danh mục menu
 menu_category = ["Tea & Coffee","Beverages","Fast Food","Starters","Main Course","Dessert"]
 
-menu_category_dict = {"Tea & Coffee":"1 Tea & Coffee.txt","Beverages":"2 Beverages.txt",
-                "Fast Food":"3 Fast Food.txt",
-                "Starters":"4 Starters.txt","Main Course":"5 Main Course.txt",
-                "Dessert":"6 Dessert.txt"}
+# Từ điển liên kết danh mục menu với tên file
+menu_category_dict = {
+    "Tea & Coffee":"1 Tea & Coffee.txt",
+    "Beverages":"2 Beverages.txt",
+    "Fast Food":"3 Fast Food.txt",
+    "Starters":"4 Starters.txt",
+    "Main Course":"5 Main Course.txt",
+    "Dessert":"6 Dessert.txt"
+}
 
+# Danh sách đơn hàng
 order_dict = {}
 for i in menu_category:
     order_dict[i] = {}
 
+# Thiết lập thư mục làm việc là thư mục hiện tại của file
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def load_menu():
-    menuCategory.set("")
-    menu_tabel.delete(*menu_tabel.get_children())
-    menu_file_list = os.listdir("Menu")
+    '''Hàm để tải danh sách menu'''
+    menuCategory.set("")  # Xóa giá trị trong menuCategory
+    menu_tabel.delete(*menu_tabel.get_children())  # Xóa nội dung hiện tại trong bảng menu_tabel
+    menu_file_list = os.listdir("Menu")  # Lấy danh sách tệp tin trong thư mục "Menu"
     for file in menu_file_list:
-        f = open("Menu\\" + file , "r")
+        f = open("Menu\\" + file , "r")  # Mở tệp tin
         category=""
         while True:
             line = f.readline()
             if(line==""):
-                menu_tabel.insert('',END,values=["","",""])
+                menu_tabel.insert('',END,values=["","",""])  # Thêm dòng trống vào bảng menu_tabel
                 break
             elif (line=="\n"):
                 continue
             elif(line[0]=='#'):
-                category = line[1:-1]
-                name = "\t\t"+line[:-1]
+                category = line[1:-1]  # Đặt giá trị cho biến category từ dòng bắt đầu bằng "#"
+                name = "\t\t"+line[:-1]  # Đặt giá trị cho biến name với khoảng trắng phía trước từ dòng bắt đầu bằng "#"
                 price = ""
             elif(line[0]=='*'):
-                name = line[:-1]
+                name = line[:-1]  # Đặt giá trị cho biến name từ dòng bắt đầu bằng "*"
                 price = ""
             else:
-                name = line[:line.rfind(" ")]
-                price = line[line.rfind(" ")+1:-3]
+                name = line[:line.rfind(" ")]  # Đặt giá trị cho biến name từ dòng có định dạng "tên giá"
+                price = line[line.rfind(" ")+1:-3]  # Đặt giá trị cho biến price từ dòng có định dạng "tên giá"
             
-            menu_tabel.insert('',END,values=[name,price,category])
-       
+            menu_tabel.insert('',END,values=[name,price,category])  # Thêm dòng mới vào bảng menu_tabel
 
 def load_order():
-    order_tabel.delete(*order_tabel.get_children())
+    '''Hàm để tải danh sách đơn hàng'''
+    order_tabel.delete(*order_tabel.get_children())  # Xóa nội dung hiện tại trong bảng order_tabel
     for category in order_dict.keys():
-        if order_dict[category]:
-            for lis in order_dict[category].values():
-                order_tabel.insert('',END,values=lis)
-    update_total_price()
+        if order_dict[category]!={}:
+            for item in order_dict[category].keys():
+                order_tabel.insert('',END,values=[item,order_dict[category][item]["price"],order_dict[category][item]["quantity"],order_dict[category][item]["total"]])  # Thêm dòng mới vào bảng order_tabel
 
 def add_button_operation():
-    name = itemName.get()
-    rate = itemRate.get()
-    category = itemCategory.get()
-    quantity = itemQuantity.get()
-
-    if name in order_dict[category].keys():
-        tmsg.showinfo("Error", "Item already exist in your order")
-        return
-    if not quantity.isdigit():
-        tmsg.showinfo("Error", "Please Enter Valid Quantity")
-        return
-    lis = [name,rate,quantity,str(int(rate)*int(quantity)),category]
-    order_dict[category][name] = lis
-    load_order()
+    ''' Hàm xử lý khi nhấn nút "Add" '''
+    item_name = itemName.get()  # Lấy giá trị từ trường nhập liệu itemName
+    item_price = itemPrice.get()  # Lấy giá trị từ trường nhập liệu itemPrice
+    item_quantity = itemQuantity.get()  # Lấy giá trị từ trường nhập liệu itemQuantity
+    item_category = menuCategory.get()  # Lấy giá trị từ combobox menuCategory
     
-def load_item_from_menu(event):
-    cursor_row = menu_tabel.focus()
-    contents = menu_tabel.item(cursor_row)
-    row = contents["values"]
+    if item_name=="" or item_price=="" or item_quantity=="" or item_category=="":
+        tmsg.showinfo("Error","Please fill in all the fields.")  # Hiển thị thông báo lỗi nếu có trường nhập liệu không được điền đầy đủ
+    else:
+        # Kiểm tra xem mục đã tồn tại trong danh sách đơn hàng hay chưa
+        if item_name in order_dict[item_category]:
+            tmsg.showinfo("Error","Item already exists in the order.")  # Hiển thị thông báo lỗi nếu mục đã tồn tại trong danh sách đơn hàng
+        else:
+            # Thêm mục vào danh sách đơn hàng
+            order_dict[item_category][item_name] = {
+                "price": item_price,
+                "quantity": item_quantity,
+                "total": str(float(item_price)*int(item_quantity))
+            }
+            
+            # Xóa giá trị trong các trường nhập liệu
+            itemName.set("")
+            itemPrice.set("")
+            itemQuantity.set("")
+            menuCategory.set("")
+            
+            # Tải lại danh sách đơn hàng
+            load_order()
+            
+            # Cập nhật tổng giá trị của đơn hàng
+            update_total_price()
 
-    itemName.set(row[0])
-    itemRate.set(row[1])
-    itemCategory.set(row[2])
-    itemQuantity.set("1")
+def load_item_from_menu(event):
+    '''Hàm để tải thông tin mục từ bảng menu'''
+    selected_row = menu_tabel.selection()  # Lấy dòng được chọn từ bảng menu_tabel
+    if len(selected_row) != 0:
+        item = menu_tabel.item(selected_row[0])['values']
+        itemName.set(item[0])  # Đặt giá trị cho trường nhập liệu itemName
+        itemPrice.set(item[1])  # Đặt giá trị cho trường nhập liệu itemPrice
+        menuCategory.set(item[2])  # Đặt giá trị cho combobox menuCategory
 
 def load_item_from_order(event):
-    cursor_row = order_tabel.focus()
-    contents = order_tabel.item(cursor_row)
-    row = contents["values"]
+    '''Hàm để tải thông tin mục từ bảng đơn hàng'''
+    selected_row = order_tabel.selection()  # Lấy dòng được chọn từ bảng order_tabel
+    if len(selected_row) != 0:
+        item = order_tabel.item(selected_row[0])['values']
+        itemName.set(item[0])  # Đặt giá trị cho trường nhập liệu itemName
+        itemPrice.set(item[1])  # Đặt giá trị cho trường nhập liệu itemPrice
+        itemQuantity.set(item[2])  # Đặt giá trị cho trường nhập liệu itemQuantity
 
-    itemName.set(row[0])
-    itemRate.set(row[1])
-    itemQuantity.set(row[2])
-    itemCategory.set(row[4])
-
-def show_button_operation():
-    category = menuCategory.get()
-    if category not in menu_category:
-        tmsg.showinfo("Error", "Please select valid Choice")
+def delete_button_operation():
+    '''Hàm xử lý khi nhấn nút "Delete"'''
+    item_name = itemName.get()  # Lấy giá trị từ trường nhập liệu itemName
+    item_category = menuCategory.get()  # Lấy giá trị từ combobox menuCategory
+    
+    if item_name=="" or item_category=="":
+        tmsg.showinfo("Error","Please select an item to delete.")  # Hiển thị thông báo lỗi nếu không có mục nào được chọn
     else:
-        menu_tabel.delete(*menu_tabel.get_children())
-        f = open("Menu\\" + menu_category_dict[category] , "r")
-        while True:
-            line = f.readline()
-            if(line==""):
-                break
-            if (line[0]=='#' or line=="\n"):
-                continue
-            if(line[0]=='*'):
-                name = "\t"+line[:-1]
-                menu_tabel.insert('',END,values=[name,"",""])
-            else:
-                name = line[:line.rfind(" ")]
-                price = line[line.rfind(" ")+1:-3]
-                menu_tabel.insert('',END,values=[name,price,category])
-
-def clear_button_operation():
-    itemName.set("")
-    itemRate.set("")
-    itemQuantity.set("")
-    itemCategory.set("")
-
-def cancel_button_operation():
-    names = []
-    for i in menu_category:
-        names.extend(list(order_dict[i].keys()))
-    if len(names)==0:
-        tmsg.showinfo("Error", "Your order list is Empty")
-        return
-    ans = tmsg.askquestion("Cancel Order", "Are You Sure to Cancel Order?")
-    if ans=="no":
-        return
-    order_tabel.delete(*order_tabel.get_children())
-    for i in menu_category:
-        order_dict[i] = {}
-    clear_button_operation()
-    update_total_price()
-
-def update_button_operation():
-    name = itemName.get()
-    rate = itemRate.get()
-    category = itemCategory.get()
-    quantity = itemQuantity.get()
-
-    if category=="":
-        return
-    if name not in order_dict[category].keys():
-        tmsg.showinfo("Error", "Item is not in your order list")
-        return
-    if order_dict[category][name][2]==quantity:
-        tmsg.showinfo("Error", "No changes in Quantity")
-        return
-    order_dict[category][name][2] = quantity
-    order_dict[category][name][3] = str(int(rate)*int(quantity))
-    load_order()
-
-def remove_button_operation():
-    name = itemName.get()
-    category = itemCategory.get()
-
-    if category=="":
-        return
-    if name not in order_dict[category].keys():
-        tmsg.showinfo("Error", "Item is not in your order list")
-        return
-    del order_dict[category][name]
-    load_order()
+        # Kiểm tra xem mục có tồn tại trong danh sách đơn hàng hay không
+        if item_name not in order_dict[item_category]:
+            tmsg.showinfo("Error","Item does not exist in the order.")  # Hiển thị thông báo lỗi nếu mục không tồn tại trong danh sách đơn hàng
+        else:
+            # Xóa mục khỏi danh sách đơn hàng
+            del order_dict[item_category][item_name]
+            
+            # Xóa giá trị trong các trường nhập liệu
+            itemName.set("")
+            itemPrice.set("")
+            itemQuantity.set("")
+            menuCategory.set("")
+            
+            # Tải lại danh sách đơn hàng
+            load_order()
+            
+            # Cập nhật tổng giá trị của đơn hàng
+            update_total_price()
 
 def update_total_price():
-    price = 0
-    for i in menu_category:
-        for j in order_dict[i].keys():
-            price += int(order_dict[i][j][3])
-    if price == 0:
-        totalPrice.set("")
-    else:
-        totalPrice.set("VNĐ "+str(price)+'.000 VNĐ')
+    '''Hàm để cập nhật tổng giá trị của đơn hàng'''
+    total = 0
+    for category in order_dict.keys():
+        for item in order_dict[category].keys():
+            total += float(order_dict[category][item]["total"])
+    totalPrice.set(total)  # Đặt giá trị cho trường nhập liệu totalPrice
 
-def bill_button_operation():
-    customer_name = customerName.get()
-    customer_contact = customerContact.get()
-    names = []
-    for i in menu_category:
-        names.extend(list(order_dict[i].keys()))
-    if len(names)==0:
-        tmsg.showinfo("Error", "Your order list is Empty")
-        return
-    if customer_name=="" or customer_contact=="":
-        tmsg.showinfo("Error", "Customer Details Required")
-        return
-    if not customerContact.get().isdigit():
-        tmsg.showinfo("Error", "Invalid Customer Contact")
-        return   
-    ans = tmsg.askquestion("Generate Bill", "Are You Sure to Generate Bill?")
-    ans = "yes"
-    if ans=="yes":
-        bill = Toplevel()
-        bill.title("Bill")
-        bill.geometry("670x500+300+100")
-        bill_text_area = Text(bill, font=("arial", 12))
-        st = "\t\t\t\tHotel Billing System\n\t\t\tDLQ1231\n"
-        st += "\t\t\tCODE.NO:- 34VASFD2215HKAAA\n"
-        st += "-"*61 + "BILL" + "-"*61 + "\nDate:- "
+def save_order():
+    '''Hàm để lưu đơn hàng'''
+    # Tạo tên file dựa trên thời gian hiện tại
+    file_name = time.strftime("%Y%m%d-%H%M%S") + ".txt"
+    
+    # Tạo đường dẫn tới thư mục "Orders" nếu chưa tồn tại
+    if not os.path.exists("Orders"):
+        os.makedirs("Orders")
+    
+    # Mở tệp tin để ghi đơn hàng
+    f = open("Orders\\" + file_name,"w")
+    
+    # Ghi thông tin đơn hàng vào tệp tin
+    for category in order_dict.keys():
+        for item in order_dict[category].keys():
+            f.write(category + " - " + item + " - " + order_dict[category][item]["quantity"] + "\n")
+    
+    # Đóng tệp tin
+    f.close()
+    
+    tmsg.showinfo("Success","Order saved successfully.")  # Hiển thị thông báo thành công khi lưu đơn hàng
 
-        
-        t = time.localtime(time.time())
-        week_day_dict = {0:"Monday",1:"Tuesday",2:"Wednesday",3:"Thursday",4:"Friday",5:"Saturday",
-                            6:"Sunday"}
-        st += f"{t.tm_mday} / {t.tm_mon} / {t.tm_year} ({week_day_dict[t.tm_wday]})"
-        st += " "*10 + f"\t\t\t\t\t\tTime:- {t.tm_hour} : {t.tm_min} : {t.tm_sec}"
-
-        
-        st += f"\nCustomer Name:- {customer_name}\nCustomer Contact:- {customer_contact}\n"
-        st += "-"*130 + "\n" + " "*4 + "DESCRIPTION\t\t\t\t\tRATE\tQUANTITY\t\tAMOUNT\n"
-        st += "-"*130 + "\n"
-
-        
-        for i in menu_category:
-            for j in order_dict[i].keys():
-                lis = order_dict[i][j]
-                name = lis[0]
-                rate = lis[1]
-                quantity = lis[2]
-                price = lis[3]
-                st += name + "\t\t\t\t\t" + rate + "\t      " + quantity + "\t\t  " + price + "\n\n"
-        st += "-"*130
-
-        
-        st += f"\n\t\t\tTotal price : {totalPrice.get()}\n"
-        st += "-"*130
-
-        
-        bill_text_area.insert(1.0, st)
-
-        
-        folder = f"{t.tm_mday},{t.tm_mon},{t.tm_year}"
-        if not os.path.exists(f"Bill Records\\{folder}"):
-            os.makedirs(f"Bill Records\\{folder}")
-        file = open(f"Bill Records\\{folder}\\{customer_name+customer_contact}.txt", "w")
-        file.write(st)
-        file.close()
-
-        
-        order_tabel.delete(*order_tabel.get_children())
-        for i in menu_category:
-            order_dict[i] = {}
-        clear_button_operation()
-        update_total_price()
-        customerName.set("")
-        customerContact.set("")
-
-        bill_text_area.pack(expand=True, fill=BOTH)
-        bill.focus_set()
-        bill.protocol("WM_DELETE_WINDOW", close_window)
-
-def close_window():
-    tmsg.showinfo("Thanks", "Thanks for using our service")
-    root.destroy()
-
+# Thiết lập giao diện chương trình
 root = Tk()
-w, h = root.winfo_screenwidth(), root.winfo_screenheight()
-root.geometry("%dx%d+0+0" % (w, h))
-root.title("Hotel Billing System")
 
+# Đặt tiêu đề cho cửa sổ chương trình
+root.title("Restaurant Management System")
 
-style_button = ttk.Style()
-style_button.configure("TButton",font = ("arial",10,"bold"),
-   background="lightgreen")
+# Thiết lập kích thước cửa sổ chương trình
+root.geometry("1000x500")
 
-title_frame = Frame(root, bd=8, bg="red", relief=GROOVE)
-title_frame.pack(side=TOP, fill="x")
+# Tạo thanh cuộn dọc
+scrollbar = Scrollbar(root)
+scrollbar.pack(side=RIGHT, fill=Y)
 
-title_label = Label(title_frame, text="Hotel Billing System", 
-                    font=("times new roman", 20, "bold"),bg = "red", fg="white", pady=5)
-title_label.pack()
-
-
-customer_frame = LabelFrame(root,text="Customer Details",font=("times new roman", 15, "bold"),
-                            bd=8, bg="lightblue", relief=GROOVE)
-customer_frame.pack(side=TOP, fill="x")
-
-customer_name_label = Label(customer_frame, text="Name", 
-                    font=("arial", 15, "bold"),bg = "lightblue", fg="blue")
-customer_name_label.grid(row = 0, column = 0)
-
-customerName = StringVar()
-customerName.set("")
-customer_name_entry = Entry(customer_frame,width=20,font="arial 15",bd=5,
-                                textvariable=customerName)
-customer_name_entry.grid(row = 0, column=1,padx=50)
-
-customer_contact_label = Label(customer_frame, text="Contact", 
-                    font=("arial", 15, "bold"),bg = "lightblue", fg="blue")
-customer_contact_label.grid(row = 0, column = 2)
-
-customerContact = StringVar()
-customerContact.set("")
-customer_contact_entry = Entry(customer_frame,width=20,font="arial 15",bd=5,
-                                textvariable=customerContact)
-customer_contact_entry.grid(row = 0, column=3,padx=50)
-
-
-menu_frame = Frame(root,bd=8, bg="lightblue", relief=GROOVE)
-menu_frame.place(x=0,y=125,height=585,width=680)
-
-menu_label = Label(menu_frame, text="Menu", 
-                    font=("times new roman", 20, "bold"),bg = "lightblue", fg="red", pady=0)
-menu_label.pack(side=TOP,fill="x")
-
-menu_category_frame = Frame(menu_frame,bg="lightblue",pady=10)
-menu_category_frame.pack(fill="x")
-
-combo_lable = Label(menu_category_frame,text="Select Type", 
-                    font=("arial", 12, "bold"),bg = "lightblue", fg="blue")
-combo_lable.grid(row=0,column=0,padx=10)
-
-menuCategory = StringVar()
-combo_menu = ttk.Combobox(menu_category_frame,values=menu_category,
-                            textvariable=menuCategory)
-combo_menu.grid(row=0,column=1,padx=30)
-
-show_button = ttk.Button(menu_category_frame, text="Show",width=10,
-                        command=show_button_operation)
-show_button.grid(row=0,column=2,padx=60)
-
-show_all_button = ttk.Button(menu_category_frame, text="Show All",
-                        width=10,command=load_menu)
-show_all_button.grid(row=0,column=3)
-
-############################# Menu Tabel ##########################################
-menu_tabel_frame = Frame(menu_frame)
-menu_tabel_frame.pack(fill=BOTH,expand=1)
-
-scrollbar_menu_x = Scrollbar(menu_tabel_frame,orient=HORIZONTAL)
-scrollbar_menu_y = Scrollbar(menu_tabel_frame,orient=VERTICAL)
-
-style = ttk.Style()
-style.configure("Treeview.Heading",font=("arial",13, "bold"))
-style.configure("Treeview",font=("arial",12),rowheight=25)
-
-menu_tabel = ttk.Treeview(menu_tabel_frame,style = "Treeview",
-            columns =("name","price","category"),xscrollcommand=scrollbar_menu_x.set,
-            yscrollcommand=scrollbar_menu_y.set)
-
-menu_tabel.heading("name",text="Name")
+# Tạo bảng hiển thị danh sách menu
+menu_tabel = ttk.Treeview(root, columns=("name","price","category"), yscrollcommand=scrollbar.set)
+menu_tabel.heading("name",text="Item Name")
 menu_tabel.heading("price",text="Price")
-menu_tabel["displaycolumns"]=("name", "price")
-menu_tabel["show"] = "headings"
-menu_tabel.column("price",width=50,anchor='center')
+menu_tabel.heading("category",text="Category")
+menu_tabel['show'] = 'headings'
+menu_tabel.pack(side=LEFT, fill=BOTH)
 
-scrollbar_menu_x.pack(side=BOTTOM,fill=X)
-scrollbar_menu_y.pack(side=RIGHT,fill=Y)
+# Thiết lập thanh cuộn cho bảng menu_tabel
+scrollbar.config(command=menu_tabel.yview)
 
-scrollbar_menu_x.configure(command=menu_tabel.xview)
-scrollbar_menu_y.configure(command=menu_tabel.yview)
+# Khi chọn mục từ bảng menu_tabel, gọi hàm load_item_from_menu
+menu_tabel.bind('<ButtonRelease-1>', load_item_from_menu)
 
-menu_tabel.pack(fill=BOTH,expand=1)
-
-
-
-load_menu()
-menu_tabel.bind("<ButtonRelease-1>",load_item_from_menu)
-
-
-item_frame = Frame(root,bd=8, bg="lightblue", relief=GROOVE)
-item_frame.place(x=680,y=125,height=230,width=680)
-
-item_title_label = Label(item_frame, text="Item", 
-                    font=("times new roman", 20, "bold"),bg = "lightblue", fg="red")
-item_title_label.pack(side=TOP,fill="x")
-
-item_frame2 = Frame(item_frame, bg="lightblue")
-item_frame2.pack(fill=X)
-
-item_name_label = Label(item_frame2, text="Name", 
-                    font=("arial", 12, "bold"),bg = "lightblue", fg="blue")
-item_name_label.grid(row=0,column=0)
-
-itemCategory = StringVar()
-itemCategory.set("")
-
+# Tạo trường nhập liệu và nhãn cho trường nhập liệu itemName
 itemName = StringVar()
-itemName.set("")
-item_name = Entry(item_frame2, font="arial 12",textvariable=itemName,state=DISABLED, width=25)
-item_name.grid(row=0,column=1,padx=10)
+itemNameEntry = Entry(root, textvariable=itemName)
+itemNameEntry.pack()
+itemNameLabel = Label(root, text="Item Name")
+itemNameLabel.pack()
 
-item_rate_label = Label(item_frame2, text="Price", 
-                    font=("arial", 12, "bold"),bg = "lightblue", fg="blue")
-item_rate_label.grid(row=0,column=2,padx=40)
+# Tạo trường nhập liệu và nhãn cho trường nhập liệu itemPrice
+itemPrice = StringVar()
+itemPriceEntry = Entry(root, textvariable=itemPrice)
+itemPriceEntry.pack()
+itemPriceLabel = Label(root, text="Price")
+itemPriceLabel.pack()
 
-itemRate = StringVar()
-itemRate.set("")
-item_rate = Entry(item_frame2, font="arial 12",textvariable=itemRate,state=DISABLED, width=10)
-item_rate.grid(row=0,column=3,padx=10)
-
-item_quantity_label = Label(item_frame2, text="Quantity", 
-                    font=("arial", 12, "bold"),bg = "lightblue", fg="blue")
-item_quantity_label.grid(row=1,column=0,padx=30,pady=15)
-
+# Tạo trường nhập liệu và nhãn cho trường nhập liệu itemQuantity
 itemQuantity = StringVar()
-itemQuantity.set("")
-item_quantity = Entry(item_frame2, font="arial 12",textvariable=itemQuantity, width=10)
-item_quantity.grid(row=1,column=1)
+itemQuantityEntry = Entry(root, textvariable=itemQuantity)
+itemQuantityEntry.pack()
+itemQuantityLabel = Label(root, text="Quantity")
+itemQuantityLabel.pack()
 
-item_frame3 = Frame(item_frame, bg="lightblue")
-item_frame3.pack(fill=X)
+# Tạo combobox và nhãn cho combobox menuCategory
+menuCategory = StringVar()
+menuCategoryCombo = ttk.Combobox(root, textvariable=menuCategory)
+menuCategoryCombo['values'] = menu_category
+menuCategoryCombo.pack()
+menuCategoryLabel = Label(root, text="Category")
+menuCategoryLabel.pack()
 
-add_button = ttk.Button(item_frame3, text="Add Item"
-                        ,command=add_button_operation)
-add_button.grid(row=0,column=0,padx=40,pady=30)
+# Tạo nút "Add" và gán hàm add_button_operation cho sự kiện nhấn nút
+addButton = Button(root, text="Add", command=add_button_operation)
+addButton.pack()
 
-remove_button = ttk.Button(item_frame3, text="Remove Item"
-                        ,command=remove_button_operation)
-remove_button.grid(row=0,column=1,padx=40,pady=30)
-
-update_button = ttk.Button(item_frame3, text="Update Quantity"
-                        ,command=update_button_operation)
-update_button.grid(row=0,column=2,padx=40,pady=30)
-
-clear_button = ttk.Button(item_frame3, text="Clear",
-                        width=8,command=clear_button_operation)
-clear_button.grid(row=0,column=3,padx=40,pady=30)
-
-
-order_frame = Frame(root,bd=8, bg="lightblue", relief=GROOVE)
-order_frame.place(x=680,y=335,height=370,width=680)
-
-order_title_label = Label(order_frame, text="Your Order", 
-                    font=("times new roman", 20, "bold"),bg = "lightblue", fg="red")
-order_title_label.pack(side=TOP,fill="x")
-
-order_tabel_frame = Frame(order_frame)
-order_tabel_frame.place(x=0,y=40,height=260,width=680)
-
-scrollbar_order_x = Scrollbar(order_tabel_frame,orient=HORIZONTAL)
-scrollbar_order_y = Scrollbar(order_tabel_frame,orient=VERTICAL)
-
-order_tabel = ttk.Treeview(order_tabel_frame,
-            columns =("name","rate","quantity","price","category"),xscrollcommand=scrollbar_order_x.set,
-            yscrollcommand=scrollbar_order_y.set)
-
-order_tabel.heading("name",text="Name")
-order_tabel.heading("rate",text="Rate")
-order_tabel.heading("quantity",text="Quantity")
+# Tạo bảng hiển thị danh sách đơn hàng
+order_tabel = ttk.Treeview(root, columns=("name","price","quantity","total"), yscrollcommand=scrollbar.set)
+order_tabel.heading("name",text="Item Name")
 order_tabel.heading("price",text="Price")
-order_tabel["displaycolumns"]=("name", "rate","quantity","price")
-order_tabel["show"] = "headings"
-order_tabel.column("rate",width=100,anchor='center', stretch=NO)
-order_tabel.column("quantity",width=100,anchor='center', stretch=NO)
-order_tabel.column("price",width=100,anchor='center', stretch=NO)
+order_tabel.heading("quantity",text="Quantity")
+order_tabel.heading("total",text="Total")
+order_tabel['show'] = 'headings'
+order_tabel.pack(side=LEFT, fill=BOTH)
 
-order_tabel.bind("<ButtonRelease-1>",load_item_from_order)
+# Thiết lập thanh cuộn cho bảng order_tabel
+scrollbar.config(command=order_tabel.yview)
 
-scrollbar_order_x.pack(side=BOTTOM,fill=X)
-scrollbar_order_y.pack(side=RIGHT,fill=Y)
+# Khi chọn mục từ bảng order_tabel, gọi hàm load_item_from_order
+order_tabel.bind('<ButtonRelease-1>', load_item_from_order)
 
-scrollbar_order_x.configure(command=order_tabel.xview)
-scrollbar_order_y.configure(command=order_tabel.yview)
+# Tạo nút "Delete" và gán hàm delete_button_operation cho sự kiện nhấn nút
+deleteButton = Button(root, text="Delete", command=delete_button_operation)
+deleteButton.pack()
 
-order_tabel.pack(fill=BOTH,expand=1)
-
-
-total_price_label = Label(order_frame, text="Total Price", 
-                    font=("arial", 12, "bold"),bg = "lightblue", fg="blue")
-total_price_label.pack(side=LEFT,anchor=SW,padx=20,pady=10)
-
+# Tạo trường nhập liệu và nhãn cho trường nhập liệu totalPrice
 totalPrice = StringVar()
-totalPrice.set("")
-total_price_entry = Entry(order_frame, font="arial 12",textvariable=totalPrice,state=DISABLED, 
-                            width=10)
-total_price_entry.pack(side=LEFT,anchor=SW,padx=0,pady=10)
+totalPriceEntry = Entry(root, textvariable=totalPrice, state="readonly")
+totalPriceEntry.pack()
+totalPriceLabel = Label(root, text="Total Price")
+totalPriceLabel.pack()
 
-bill_button = ttk.Button(order_frame, text="Bill",width=8,
-                        command=bill_button_operation)
-bill_button.pack(side=LEFT,anchor=SW,padx=80,pady=10)
+# Tạo nút "Save Order" và gán hàm save_order cho sự kiện nhấn nút
+saveButton = Button(root, text="Save Order", command=save_order)
+saveButton.pack()
 
-cancel_button = ttk.Button(order_frame, text="Cancel Order",command=cancel_button_operation)
-cancel_button.pack(side=LEFT,anchor=SW,padx=20,pady=10)
+# Tải danh sách menu
+load_menu()
 
+# Tải danh sách đơn hàng
+load_order()
+
+# Cập nhật tổng giá trị của đơn hàng
+update_total_price()
+
+# Chạy chương trình
 root.mainloop()
-
